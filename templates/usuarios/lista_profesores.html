@@ -1,0 +1,73 @@
+{% extends 'base.html' %}
+{% block title %}Profesores - EduAsistencia{% endblock %}
+{% block page_title %}Profesores{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h4>Gestión de Profesores</h4>
+        <p>{{ profesores.count }} profesor(es) registrado(s) en el sistema.</p>
+    </div>
+    <a href="{% url 'crear_profesor' %}" class="btn btn-primary rounded-pill px-4">
+        <i class="bi bi-person-plus-fill me-2"></i>Nuevo Profesor
+    </a>
+</div>
+
+<div class="table-card">
+    {% if profesores %}
+    <table class="table table-hover">
+        <thead>
+            <tr>
+                <th>Profesor</th>
+                <th>Usuario</th>
+                <th>Correo</th>
+                <th>Cursos</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for profesor in profesores %}
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="user-avatar" style="width:36px; height:36px; border-radius:50%; background:#4361ee; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:.8rem">
+                            {{ profesor.first_name|first|upper|default:profesor.username|first|upper }}
+                        </div>
+                        <div>
+                            <div class="fw-600" style="font-weight:600">{{ profesor.get_full_name|default:profesor.username }}</div>
+                            <small class="text-muted">Profesor</small>
+                        </div>
+                    </div>
+                </td>
+                <td><code class="small">{{ profesor.username }}</code></td>
+                <td class="text-muted small">{{ profesor.email|default:"—" }}</td>
+                <td>
+                    {% for curso in profesor.cursos.all %}
+                        <span class="badge badge-profesor me-1">{{ curso.nombre }}</span>
+                    {% empty %}
+                        <span class="text-muted small">Sin cursos</span>
+                    {% endfor %}
+                </td>
+                <td>
+                    <div class="d-flex gap-1">
+                        <a href="{% url 'editar_profesor' profesor.pk %}" class="btn btn-sm btn-outline-primary btn-icon" title="Editar">
+                            <i class="bi bi-pencil-fill"></i>
+                        </a>
+                        <a href="{% url 'eliminar_profesor' profesor.pk %}" class="btn btn-sm btn-outline-danger btn-icon" title="Eliminar">
+                            <i class="bi bi-trash-fill"></i>
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state">
+        <i class="bi bi-person-x"></i>
+        <h6>No hay profesores registrados</h6>
+        <a href="{% url 'crear_profesor' %}" class="btn btn-primary btn-sm mt-2">Crear primer profesor</a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

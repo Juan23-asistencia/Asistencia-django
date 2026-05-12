@@ -1,0 +1,509 @@
+{% extends 'base.html' %}
+{% block title %}{{ curso }} — Detalle{% endblock %}
+{% block page_title %}{{ curso }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.materia-card {
+    background:#fff; border:1px solid #e2e8f0; border-radius:16px;
+    padding:20px; transition:box-shadow .2s,transform .2s;
+    height:100%; display:flex; flex-direction:column;
+}
+.materia-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.08);transform:translateY(-2px);}
+.materia-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:1.2rem;margin-bottom:12px;}
+.materia-nombre{font-size:.95rem;font-weight:800;color:#0f172a;margin-bottom:8px;}
+.prof-chip{display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:600;color:#1d4ed8;background:#dbeafe;padding:3px 9px;border-radius:20px;}
+.prof-chip.sin{color:#92400e;background:#fef3c7;}
+.mi-badge{display:inline-flex;align-items:center;gap:4px;font-size:.68rem;font-weight:700;color:#16a34a;background:#dcfce7;padding:3px 8px;border-radius:20px;margin-top:5px;}
+.lock-badge{display:inline-flex;align-items:center;gap:4px;font-size:.68rem;font-weight:700;color:#dc2626;background:#fee2e2;padding:3px 8px;border-radius:20px;margin-top:5px;}
+.mc-0{background:#ede9fe;color:#7c3aed}
+.mc-1{background:#dbeafe;color:#1d4ed8}
+.mc-2{background:#dcfce7;color:#16a34a}
+.mc-3{background:#fef3c7;color:#d97706}
+.mc-4{background:#fee2e2;color:#dc2626}
+.mc-5{background:#e0f2fe;color:#0891b2}
+.mc-6{background:#f3e8ff;color:#9333ea}
+.mc-7{background:#d1fae5;color:#059669}
+.est-avatar{width:34px;height:34px;border-radius:50%;background:#e0e7ff;color:#4338ca;display:inline-flex;align-items:center;justify-content:center;font-weight:800;font-size:.75rem;flex-shrink:0;}
+.add-student-row{background:#f8fafc;border:2px dashed #e2e8f0;border-radius:12px;padding:16px 20px;margin-top:12px;display:none;}
+.add-student-row.show{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;}
+.info-banner{background:linear-gradient(135deg,#eff6ff,#f0fdf4);border:1px solid #bfdbfe;border-radius:12px;padding:14px 18px;font-size:.82rem;color:#1e40af;display:flex;align-items:flex-start;gap:10px;}
+
+/* Excel upload zone */
+.upload-zone {
+    border: 2px dashed #c7d2fe; border-radius: 14px;
+    padding: 32px 20px; text-align: center;
+    background: #f8faff; cursor: pointer; transition: all .2s;
+}
+.upload-zone:hover, .upload-zone.drag { border-color: #4361ee; background: #eef2ff; }
+.upload-zone i { font-size: 2.5rem; color: #4361ee; }
+.upload-zone h6 { font-weight: 700; color: #1e293b; margin: 10px 0 4px; }
+.upload-zone small { color: #64748b; }
+
+.result-item { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f1f5f9; font-size:.82rem; }
+.result-item:last-child { border:none; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h4>{{ curso }}</h4>
+        <p>
+            <span class="badge badge-profesor me-1">{{ materias.count }} materia(s)</span>
+            <span class="badge bg-light text-dark border">{{ estudiantes.count }} estudiante(s)</span>
+        </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'lista_cursos' %}" class="btn btn-outline-secondary rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i>Cursos
+        </a>
+        {% if user.es_admin %}
+        <a href="{% url 'crear_materia' curso.pk %}" class="btn btn-primary rounded-pill px-3">
+            <i class="bi bi-plus-circle-fill me-1"></i>Agregar Materia
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ── MATERIAS ─────────────────────── -->
+<h6 class="fw-bold mb-3" style="color:#0f172a;font-size:.78rem;text-transform:uppercase;letter-spacing:.8px">
+    <i class="bi bi-book-fill me-2 text-primary"></i>Materias del Curso
+</h6>
+{% if materias %}
+<div class="row g-3 mb-5">
+    {% for mat in materias %}
+    <div class="col-sm-6 col-lg-4 col-xl-3">
+        <div class="materia-card">
+            <div class="materia-icon mc-{% cycle '0' '1' '2' '3' '4' '5' '6' '7' %}">
+                <i class="bi bi-book-fill"></i>
+            </div>
+            <div class="materia-nombre">{{ mat.nombre }}</div>
+            {% if mat.profesor %}
+            <span class="prof-chip"><i class="bi bi-person-fill"></i>{{ mat.profesor.get_full_name|default:mat.profesor.username }}</span>
+            {% else %}
+            <span class="prof-chip sin"><i class="bi bi-exclamation-triangle-fill"></i>Sin profesor</span>
+            {% endif %}
+            {% if not user.es_admin %}
+                {% if mat.profesor == user %}
+                <span class="mi-badge"><i class="bi bi-unlock-fill"></i>Tu materia</span>
+                {% else %}
+                <span class="lock-badge"><i class="bi bi-lock-fill"></i>Sin acceso</span>
+                {% endif %}
+            {% endif %}
+            <div class="mt-auto pt-3 d-flex gap-1 flex-wrap">
+                {% if user.es_admin or mat.profesor == user %}
+                <a href="{% url 'detalle_materia' mat.pk %}" class="btn btn-primary btn-sm rounded-pill px-3 flex-fill">
+                    <i class="bi bi-eye-fill me-1"></i>Asistencia
+                </a>
+                <a href="{% url 'tomar_asistencia' mat.pk %}" class="btn btn-outline-success btn-sm btn-icon" title="Tomar asistencia">
+                    <i class="bi bi-check2-square"></i>
+                </a>
+                {% endif %}
+                {% if user.es_admin %}
+                <a href="{% url 'editar_materia' mat.pk %}" class="btn btn-outline-secondary btn-sm btn-icon" title="Editar"><i class="bi bi-pencil-fill"></i></a>
+                <a href="{% url 'eliminar_materia' mat.pk %}" class="btn btn-outline-danger btn-sm btn-icon" title="Eliminar"><i class="bi bi-trash-fill"></i></a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% else %}
+<div class="table-card mb-5">
+    <div class="empty-state">
+        <i class="bi bi-book-half"></i><h6>No hay materias en este curso</h6>
+        {% if user.es_admin %}<a href="{% url 'crear_materia' curso.pk %}" class="btn btn-primary btn-sm mt-2">Agregar primera materia</a>{% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- ── ESTUDIANTES (solo admin) ──────── -->
+{% if user.es_admin %}
+<div class="table-card">
+    <div class="d-flex align-items-center justify-content-between px-4 py-3 border-bottom flex-wrap gap-2">
+        <div>
+            <h6 class="fw-bold mb-0" style="color:#0f172a">
+                <i class="bi bi-people-fill me-2 text-primary"></i>Estudiantes — {{ curso }}
+            </h6>
+            <small class="text-muted" style="font-size:.72rem">
+                Se usan automáticamente en <strong>todas las materias</strong> del curso
+            </small>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <!-- Botón importar Excel -->
+            <button onclick="document.getElementById('modalExcel').style.display='flex'"
+                    class="btn btn-success btn-sm rounded-pill px-3">
+                <i class="bi bi-file-earmark-excel-fill me-1"></i>Importar Excel
+            </button>
+            <!-- Botón agregar manual -->
+            <button onclick="toggleAgregar()" class="btn btn-primary btn-sm rounded-pill px-3" id="btnAgregar">
+                <i class="bi bi-person-plus-fill me-1"></i>Agregar Uno
+            </button>
+        </div>
+    </div>
+
+    {% if materias.count > 0 %}
+    <div class="px-4 pt-3">
+        <div class="info-banner">
+            <i class="bi bi-info-circle-fill"></i>
+            <span>Los estudiantes aparecerán automáticamente en:
+                {% for m in materias %}<strong>{{ m.nombre }}</strong>{% if not forloop.last %}, {% endif %}{% endfor %}.
+            </span>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Formulario manual inline -->
+    <div class="px-4 pt-2">
+        <div class="add-student-row" id="addStudentRow">
+            <form method="post" action="{% url 'agregar_estudiante_ajax' curso.pk %}"
+                  class="d-flex gap-2 flex-wrap align-items-end w-100" id="formAgregar">
+                {% csrf_token %}
+                <div style="flex:1;min-width:130px">
+                    <label class="form-label" style="font-size:.78rem;font-weight:600">Nombre</label>
+                    <input type="text" name="nombre" class="form-control form-control-sm" placeholder="Ej: Juan" required>
+                </div>
+                <div style="flex:1;min-width:130px">
+                    <label class="form-label" style="font-size:.78rem;font-weight:600">Apellido</label>
+                    <input type="text" name="apellido" class="form-control form-control-sm" placeholder="Ej: Pérez" required>
+                </div>
+                <div style="flex:1;min-width:120px">
+                    <label class="form-label" style="font-size:.78rem;font-weight:600">Cédula <span class="text-muted fw-normal">(opcional)</span></label>
+                    <input type="text" name="cedula" class="form-control form-control-sm" placeholder="0912345678">
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-success btn-sm rounded-pill px-3">
+                        <i class="bi bi-check-lg me-1"></i>Guardar
+                    </button>
+                    <button type="button" onclick="toggleAgregar()" class="btn btn-outline-secondary btn-sm rounded-pill px-3">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tabla de estudiantes -->
+    {% if estudiantes %}
+    <table class="table table-hover mt-2" id="tablaWrap">
+        <thead>
+            <tr><th>#</th><th>Estudiante</th><th>Cédula</th><th>Materias</th><th>Acciones</th></tr>
+        </thead>
+        <tbody id="tablaEstudiantes">
+            {% for est in estudiantes %}
+            <tr id="fila-{{ est.pk }}">
+                <td class="text-muted">{{ forloop.counter }}</td>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="est-avatar">{{ est.apellido|first|upper }}</span>
+                        <strong style="font-size:.875rem">{{ est.apellido }}, {{ est.nombre }}</strong>
+                    </div>
+                </td>
+                <td class="text-muted small">{{ est.cedula|default:"—" }}</td>
+                <td>{% for m in materias %}<span class="badge badge-profesor me-1" style="font-size:.65rem">{{ m.nombre }}</span>{% empty %}<span class="text-muted small">—</span>{% endfor %}</td>
+                <td>
+                    <div class="d-flex gap-1">
+                        <a href="{% url 'calendario_estudiante' est.pk %}" class="btn btn-sm btn-outline-success btn-icon" title="Calendario"><i class="bi bi-calendar3"></i></a>
+                        <a href="{% url 'editar_estudiante' est.pk %}" class="btn btn-sm btn-outline-primary btn-icon" title="Editar"><i class="bi bi-pencil-fill"></i></a>
+                        <a href="{% url 'eliminar_estudiante' est.pk %}" class="btn btn-sm btn-outline-danger btn-icon" title="Eliminar"><i class="bi bi-trash-fill"></i></a>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state py-5" id="emptyState">
+        <i class="bi bi-person-x"></i>
+        <h6>No hay estudiantes en este curso</h6>
+        <p class="small text-muted">Agrega estudiantes uno a uno o importa desde Excel.</p>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+
+<!-- ════════════════════════════════════════════════
+     MODAL IMPORTAR EXCEL
+     ════════════════════════════════════════════════ -->
+<div id="modalExcel" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;align-items:center;justify-content:center;padding:20px">
+    <div style="background:#fff;border-radius:20px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;box-shadow:0 32px 80px rgba(0,0,0,.3)">
+
+        <!-- Header modal -->
+        <div style="padding:24px 28px 0;display:flex;align-items:center;justify-content:space-between">
+            <div>
+                <h5 class="fw-bold mb-1" style="color:#0f172a">
+                    <i class="bi bi-file-earmark-excel-fill me-2 text-success"></i>Importar Estudiantes desde Excel
+                </h5>
+                <small class="text-muted">Curso: <strong>{{ curso }}</strong></small>
+            </div>
+            <button onclick="cerrarModal()" class="btn btn-sm btn-outline-secondary btn-icon">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <div style="padding:24px 28px">
+
+            <!-- Instrucciones formato -->
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:14px 16px;margin-bottom:20px;font-size:.8rem;color:#166534">
+                <strong><i class="bi bi-lightbulb-fill me-1"></i>Formato del archivo Excel:</strong>
+                <ul class="mb-0 mt-2 ps-3">
+                    <li>Columnas: <code>apellido</code>, <code>nombre</code>, <code>cedula</code> (la cédula es opcional)</li>
+                    <li>La <strong>primera fila</strong> debe tener los encabezados</li>
+                    <li>También acepta <code>.csv</code> con el mismo formato</li>
+                    <li>Si no tienen encabezados: columna 1=apellido, 2=nombre, 3=cédula</li>
+                </ul>
+                <div class="mt-2">
+                    <a href="{% url 'descargar_plantilla_excel' %}" class="btn btn-sm btn-outline-success rounded-pill px-3" style="font-size:.75rem">
+                        <i class="bi bi-download me-1"></i>Descargar plantilla de ejemplo
+                    </a>
+                </div>
+            </div>
+
+            <!-- Zona de carga -->
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('archivoExcel').click()">
+                <i class="bi bi-cloud-upload-fill"></i>
+                <h6>Haz clic para seleccionar el archivo</h6>
+                <small>o arrastra y suelta aquí · .xlsx, .xls, .csv</small>
+                <div id="nombreArchivo" class="mt-2 fw-bold text-primary" style="display:none"></div>
+            </div>
+            <input type="file" id="archivoExcel" accept=".xlsx,.xls,.csv" style="display:none">
+
+            <!-- Resultados -->
+            <div id="resultadosImport" style="display:none;margin-top:20px"></div>
+
+            <!-- Botones -->
+            <div class="d-flex gap-2 mt-4 justify-content-end">
+                <button onclick="cerrarModal()" class="btn btn-outline-secondary rounded-pill px-4">Cancelar</button>
+                <button onclick="procesarExcel()" id="btnImportar" class="btn btn-success rounded-pill px-4" disabled>
+                    <i class="bi bi-upload me-2"></i>Importar Estudiantes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+const CSRF  = '{{ csrf_token }}';
+const URL_IMPORT = '{% url "importar_estudiantes" curso.pk %}';
+const URL_AJAX   = '{% url "agregar_estudiante_ajax" curso.pk %}';
+const MATERIAS   = {{ materias_json|safe }};
+
+// ── Toggle formulario manual ──────────────────────
+function toggleAgregar() {
+    const row = document.getElementById('addStudentRow');
+    const btn = document.getElementById('btnAgregar');
+    row.classList.toggle('show');
+    if (row.classList.contains('show')) {
+        btn.innerHTML = '<i class="bi bi-x-lg me-1"></i>Cancelar';
+        btn.classList.replace('btn-primary','btn-outline-secondary');
+        row.querySelector('input[name="nombre"]').focus();
+    } else {
+        btn.innerHTML = '<i class="bi bi-person-plus-fill me-1"></i>Agregar Uno';
+        btn.classList.replace('btn-outline-secondary','btn-primary');
+    }
+}
+
+// ── Formulario manual AJAX ───────────────────────
+document.getElementById('formAgregar')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = this.querySelector('button[type="submit"]');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Guardando...';
+    try {
+        const res  = await fetch(URL_AJAX, {method:'POST', body: new FormData(this)});
+        const json = await res.json();
+        if (json.ok) {
+            agregarFilaTabla(json);
+            this.reset();
+            toggleAgregar();
+            toast(`✅ ${json.apellido}, ${json.nombre} agregado`);
+        } else {
+            toast('❌ ' + (json.error || 'Error'), 'danger');
+        }
+    } catch { toast('❌ Error de red', 'danger'); }
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Guardar';
+});
+
+// ── Modal Excel ───────────────────────────────────
+function cerrarModal() {
+    document.getElementById('modalExcel').style.display = 'none';
+    document.getElementById('archivoExcel').value = '';
+    document.getElementById('nombreArchivo').style.display = 'none';
+    document.getElementById('resultadosImport').style.display = 'none';
+    document.getElementById('btnImportar').disabled = true;
+    document.getElementById('uploadZone').classList.remove('drag');
+}
+
+// Drag & drop
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag'));
+zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('drag');
+    const f = e.dataTransfer.files[0];
+    if (f) setArchivo(f);
+});
+
+document.getElementById('archivoExcel').addEventListener('change', function() {
+    if (this.files[0]) setArchivo(this.files[0]);
+});
+
+function setArchivo(f) {
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (!['xlsx','xls','csv'].includes(ext)) {
+        toast('❌ Solo se aceptan .xlsx, .xls o .csv', 'danger'); return;
+    }
+    document.getElementById('nombreArchivo').textContent = '📄 ' + f.name;
+    document.getElementById('nombreArchivo').style.display = 'block';
+    document.getElementById('btnImportar').disabled = false;
+    document.getElementById('resultadosImport').style.display = 'none';
+    // Asignar al input file
+    const dt = new DataTransfer();
+    dt.items.add(f);
+    document.getElementById('archivoExcel').files = dt.files;
+}
+
+async function procesarExcel() {
+    const fileInput = document.getElementById('archivoExcel');
+    if (!fileInput.files[0]) { toast('Selecciona un archivo primero', 'warning'); return; }
+
+    const btn = document.getElementById('btnImportar');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Procesando...';
+
+    // Obtener CSRF del cookie (más confiable que la variable)
+    function getCookie(name) {
+        let v = document.cookie.match('(^|;) ?' + name + '=([^;]*)(;|$)');
+        return v ? v[2] : null;
+    }
+
+    const fd = new FormData();
+    fd.append('archivo', fileInput.files[0]);
+    fd.append('csrfmiddlewaretoken', getCookie('csrftoken'));
+
+    try {
+        const res = await fetch(URL_IMPORT, {
+            method:      'POST',
+            body:        fd,
+            credentials: 'same-origin',
+        });
+
+        if (!res.ok) {
+            // Error HTTP (403, 500, etc.)
+            let errMsg = `Error del servidor: ${res.status}`;
+            try {
+                const errJson = await res.json();
+                errMsg = errJson.error || errMsg;
+            } catch {}
+            mostrarResultados({ok: false, error: errMsg});
+        } else {
+            const json = await res.json();
+            mostrarResultados(json);
+            if (json.ok && json.agregados && json.agregados.length > 0) {
+                json.agregados.forEach(est => agregarFilaTabla(est));
+            }
+        }
+    } catch(e) {
+        mostrarResultados({
+            ok:    false,
+            error: 'No se pudo conectar con el servidor. Asegúrate de que el servidor Django esté corriendo y recarga la página.'
+        });
+    }
+
+    btn.disabled = false;
+    btn.innerHTML = '<i class="bi bi-upload me-2"></i>Importar Estudiantes';
+}
+
+function mostrarResultados(json) {
+    const div = document.getElementById('resultadosImport');
+    div.style.display = 'block';
+
+    if (!json.ok) {
+        div.innerHTML = `<div class="alert alert-danger rounded-3"><i class="bi bi-x-circle-fill me-2"></i>${json.error}</div>`;
+        return;
+    }
+
+    let html = '';
+
+    if (json.agregados.length > 0) {
+        html += `<div class="alert alert-success rounded-3 mb-2">
+            <strong><i class="bi bi-check-circle-fill me-2"></i>${json.agregados.length} estudiante(s) importado(s) correctamente</strong>
+            <div class="mt-2" style="max-height:150px;overflow-y:auto">`;
+        json.agregados.forEach(e => {
+            html += `<div class="result-item"><i class="bi bi-person-check-fill text-success"></i>${e.apellido}, ${e.nombre}${e.cedula ? ' · ' + e.cedula : ''}</div>`;
+        });
+        html += `</div></div>`;
+    }
+
+    if (json.duplicados.length > 0) {
+        html += `<div class="alert alert-warning rounded-3 mb-2">
+            <strong><i class="bi bi-exclamation-triangle-fill me-2"></i>${json.duplicados.length} duplicado(s) omitido(s)</strong>
+            <div class="mt-2" style="max-height:100px;overflow-y:auto">`;
+        json.duplicados.forEach(d => {
+            html += `<div class="result-item"><i class="bi bi-dash-circle text-warning"></i>${d}</div>`;
+        });
+        html += `</div></div>`;
+    }
+
+    if (json.errores.length > 0) {
+        html += `<div class="alert alert-danger rounded-3 mb-2">
+            <strong><i class="bi bi-x-circle-fill me-2"></i>${json.errores.length} fila(s) con error</strong>
+            <div class="mt-2" style="max-height:80px;overflow-y:auto">`;
+        json.errores.forEach(e => {
+            html += `<div class="result-item"><i class="bi bi-x text-danger"></i>${e}</div>`;
+        });
+        html += `</div></div>`;
+    }
+
+    if (json.agregados.length === 0 && json.duplicados.length === 0) {
+        html = `<div class="alert alert-warning rounded-3"><i class="bi bi-exclamation-triangle-fill me-2"></i>No se encontraron datos válidos en el archivo.</div>`;
+    }
+
+    div.innerHTML = html;
+}
+
+// ── Agregar fila a la tabla dinámicamente ─────────
+function agregarFilaTabla(est) {
+    document.getElementById('emptyState')?.remove();
+
+    let tbody = document.getElementById('tablaEstudiantes');
+    if (!tbody) { window.location.reload(); return; }
+
+    const chips = MATERIAS.map(m => `<span class="badge badge-profesor me-1" style="font-size:.65rem">${m}</span>`).join('');
+    const n = tbody.querySelectorAll('tr').length + 1;
+
+    tbody.insertAdjacentHTML('beforeend', `
+    <tr id="fila-${est.id}">
+        <td class="text-muted">${n}</td>
+        <td>
+            <div class="d-flex align-items-center gap-2">
+                <span class="est-avatar">${est.apellido.charAt(0).toUpperCase()}</span>
+                <strong style="font-size:.875rem">${est.apellido}, ${est.nombre}</strong>
+            </div>
+        </td>
+        <td class="text-muted small">${est.cedula || '—'}</td>
+        <td>${chips || '<span class="text-muted small">—</span>'}</td>
+        <td>
+            <div class="d-flex gap-1">
+                <a href="/estudiantes/${est.id}/calendario/" class="btn btn-sm btn-outline-success btn-icon" title="Calendario"><i class="bi bi-calendar3"></i></a>
+                <a href="/estudiantes/${est.id}/editar/"     class="btn btn-sm btn-outline-primary btn-icon"  title="Editar"><i class="bi bi-pencil-fill"></i></a>
+                <a href="/estudiantes/${est.id}/eliminar/"   class="btn btn-sm btn-outline-danger btn-icon"   title="Eliminar"><i class="bi bi-trash-fill"></i></a>
+            </div>
+        </td>
+    </tr>`);
+}
+
+// ── Toast ─────────────────────────────────────────
+function toast(msg, tipo='success') {
+    const d = document.createElement('div');
+    d.className = `alert alert-${tipo} alert-dismissible fade show`;
+    d.style.cssText = 'position:fixed;top:80px;right:20px;z-index:9999;min-width:300px;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.15)';
+    d.innerHTML = msg + '<button type="button" class="btn-close" data-bs-dismiss="alert"></button>';
+    document.body.appendChild(d);
+    setTimeout(() => d.remove(), 4000);
+}
+</script>
+{% endblock %}

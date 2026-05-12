@@ -1,0 +1,189 @@
+{% extends 'base.html' %}
+{% block title %}{{ materia.nombre }} — {{ curso }}{% endblock %}
+{% block page_title %}{{ materia.nombre }}{% endblock %}
+
+{% block extra_css %}
+<style>
+.attend-wrap { overflow-x:auto; border-radius:16px; border:1px solid #e2e8f0; background:#fff; }
+.attend-table { border-collapse:separate; border-spacing:0; min-width:100%; font-size:.8rem; }
+.attend-table .col-nombre {
+    position:sticky; left:0; background:#fff; z-index:2;
+    min-width:190px; white-space:nowrap;
+}
+.attend-table thead .col-nombre { background:#f8fafc; z-index:3; }
+.attend-table thead th {
+    background:#f8fafc; padding:10px 5px; text-align:center;
+    font-size:.68rem; font-weight:700; color:#64748b;
+    text-transform:uppercase; letter-spacing:.5px;
+    border-bottom:2px solid #e2e8f0; white-space:nowrap;
+}
+.attend-table thead th.col-nombre { text-align:left; padding-left:20px; border-right:2px solid #e2e8f0; }
+.attend-table thead th.col-stats  { min-width:60px; border-left:2px solid #e2e8f0; }
+.attend-table tbody tr:hover td   { background:#f8fafc !important; }
+.attend-table tbody td {
+    padding:7px 4px; text-align:center;
+    border-bottom:1px solid #f1f5f9; vertical-align:middle;
+}
+.attend-table tbody td.col-nombre { padding:10px 20px; text-align:left; border-right:2px solid #e2e8f0; background:#fff; }
+.attend-table tbody td.col-stats  { border-left:2px solid #e2e8f0; font-weight:700; font-size:.78rem; }
+.attend-table th.finde, .attend-table td.finde { background:#f9fafb !important; opacity:.55; }
+.day-cell {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:30px; height:30px; border-radius:8px; font-size:.9rem;
+    font-weight:700; transition:transform .12s; cursor:default;
+}
+.day-cell:hover { transform:scale(1.18); }
+.day-presente { background:#dcfce7; color:#16a34a; }
+.day-ausente  { background:#fee2e2; color:#dc2626; }
+.day-vacio    { color:#d1d5db; font-size:.75rem; }
+.dia-num   { display:block; font-size:.8rem; font-weight:800; color:#334155; line-height:1; }
+.dia-letra { display:block; font-size:.58rem; font-weight:600; color:#94a3b8; margin-top:1px; }
+.pct-bar  { height:5px; border-radius:3px; background:#e2e8f0; overflow:hidden; margin-top:3px; min-width:44px; }
+.pct-fill { height:100%; border-radius:3px; }
+.mini-avatar {
+    width:28px; height:28px; border-radius:50%; background:#e0e7ff; color:#4338ca;
+    display:inline-flex; align-items:center; justify-content:center;
+    font-weight:800; font-size:.68rem; flex-shrink:0; margin-right:8px;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="page-header">
+    <div>
+        <h4>{{ materia.nombre }}</h4>
+        <p>
+            Curso: <strong>{{ curso }}</strong> &nbsp;·&nbsp;
+            {% if materia.profesor %}
+            Profesor: <strong>{{ materia.profesor.get_full_name|default:materia.profesor.username }}</strong>
+            {% else %}<span class="text-warning">Sin profesor asignado</span>{% endif %}
+        </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2">
+        <a href="{% url 'detalle_curso' curso.pk %}" class="btn btn-outline-secondary rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i>Volver
+        </a>
+        <a href="{% url 'tomar_asistencia' materia.pk %}" class="btn btn-success rounded-pill px-3">
+            <i class="bi bi-check2-square me-1"></i>Tomar Asistencia
+        </a>
+        <a href="{% url 'historial_asistencia' materia.pk %}" class="btn btn-outline-primary rounded-pill px-3">
+            <i class="bi bi-clock-history me-1"></i>Historial
+        </a>
+    </div>
+</div>
+
+<!-- Navegación mes -->
+<div class="table-card p-3 mb-4 d-flex align-items-center gap-3 flex-wrap">
+    <a href="?mes={{ mes_ant }}&anio={{ anio_ant }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+        <i class="bi bi-chevron-left"></i>
+    </a>
+    <strong style="font-size:.95rem; color:#0f172a; min-width:170px; text-align:center">
+        {{ nombre_mes }} {{ anio }}
+    </strong>
+    <a href="?mes={{ mes_sig }}&anio={{ anio_sig }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+        <i class="bi bi-chevron-right"></i>
+    </a>
+    <form method="get" class="d-flex gap-2 ms-auto">
+        <select name="mes"  class="form-select form-select-sm" style="width:120px" onchange="this.form.submit()">
+            {% for num, nombre in meses_lista %}
+            <option value="{{ num }}" {% if num == mes %}selected{% endif %}>{{ nombre }}</option>
+            {% endfor %}
+        </select>
+        <select name="anio" class="form-select form-select-sm" style="width:88px"  onchange="this.form.submit()">
+            {% for a in anios_lista %}
+            <option value="{{ a }}" {% if a == anio %}selected{% endif %}>{{ a }}</option>
+            {% endfor %}
+        </select>
+    </form>
+    <div class="d-flex align-items-center gap-3 ms-2">
+        <span class="d-flex align-items-center gap-1 small text-muted">
+            <span class="day-cell day-presente" style="width:22px;height:22px;font-size:.8rem">✓</span> Presente
+        </span>
+        <span class="d-flex align-items-center gap-1 small text-muted">
+            <span class="day-cell day-ausente" style="width:22px;height:22px;font-size:.8rem">✗</span> Ausente
+        </span>
+        <span class="d-flex align-items-center gap-1 small text-muted">
+            <span class="day-cell day-vacio" style="width:22px;height:22px">·</span> Sin registro
+        </span>
+    </div>
+</div>
+
+{% if filas %}
+<div class="attend-wrap mb-4">
+    <table class="attend-table">
+        <thead>
+            <tr>
+                <th class="col-nombre">Estudiante</th>
+                {% for fecha in fechas_mes %}
+                <th class="{% if fecha.weekday >= 5 %}finde{% endif %}" title="{{ fecha|date:'l d/m/Y' }}">
+                    <span class="dia-num">{{ fecha.day }}</span>
+                    <span class="dia-letra">
+                        {% with wd=fecha.weekday %}{% if wd == 0 %}Lu{% elif wd == 1 %}Ma{% elif wd == 2 %}Mi{% elif wd == 3 %}Ju{% elif wd == 4 %}Vi{% elif wd == 5 %}Sa{% else %}Do{% endif %}{% endwith %}
+                    </span>
+                </th>
+                {% endfor %}
+                <th class="col-stats">% Asist.</th>
+                <th class="col-stats" style="color:#16a34a">✓</th>
+                <th class="col-stats" style="color:#dc2626">✗</th>
+                {% if user.es_admin %}<th class="col-stats">Cal.</th>{% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for fila in filas %}
+            <tr>
+                <td class="col-nombre">
+                    <div class="d-flex align-items-center">
+                        <span class="mini-avatar">{{ fila.estudiante.apellido|first|upper }}</span>
+                        <div>
+                            <div style="font-weight:700;font-size:.82rem;color:#1e293b">{{ fila.estudiante.apellido }}</div>
+                            <div style="font-size:.75rem;color:#64748b">{{ fila.estudiante.nombre }}</div>
+                        </div>
+                    </div>
+                </td>
+                {% for d in fila.dias %}
+                <td class="{% if d.finde %}finde{% endif %}">
+                    {% if d.estado == 'presente' %}
+                        <span class="day-cell day-presente" title="Presente — día {{ d.dia }}">✓</span>
+                    {% elif d.estado == 'ausente' %}
+                        <span class="day-cell day-ausente" title="Ausente — día {{ d.dia }}">✗</span>
+                    {% else %}
+                        <span class="day-cell day-vacio" title="Sin registro — día {{ d.dia }}">·</span>
+                    {% endif %}
+                </td>
+                {% endfor %}
+                <td class="col-stats">
+                    {% if fila.pct is not None %}
+                        <span class="{% if fila.pct >= 80 %}text-success{% elif fila.pct >= 60 %}text-warning{% else %}text-danger{% endif %}" style="font-size:.82rem">{{ fila.pct }}%</span>
+                        <div class="pct-bar">
+                            <div class="pct-fill {% if fila.pct >= 80 %}bg-success{% elif fila.pct >= 60 %}bg-warning{% else %}bg-danger{% endif %}" style="width:{{ fila.pct }}%"></div>
+                        </div>
+                    {% else %}<span class="text-muted small">—</span>{% endif %}
+                </td>
+                <td class="col-stats text-success">{{ fila.presentes }}</td>
+                <td class="col-stats text-danger">{{ fila.ausentes }}</td>
+                {% if user.es_admin %}
+                <td class="col-stats">
+                    <a href="{% url 'calendario_estudiante' fila.estudiante.pk %}?mes={{ mes }}&anio={{ anio }}"
+                       class="btn btn-sm btn-outline-primary btn-icon" title="Calendario">
+                        <i class="bi bi-calendar3"></i>
+                    </a>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="table-card">
+    <div class="empty-state">
+        <i class="bi bi-person-x"></i>
+        <h6>No hay estudiantes en este curso</h6>
+        {% if user.es_admin %}
+        <a href="{% url 'agregar_estudiante' curso.pk %}" class="btn btn-primary btn-sm mt-2">Agregar</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

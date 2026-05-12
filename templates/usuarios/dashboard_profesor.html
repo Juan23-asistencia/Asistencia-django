@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard Profesor{% endblock %}
+{% block page_title %}Mi Panel{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h4>Bienvenido, {{ user.get_full_name|default:user.username }}</h4>
+        <p>Tienes <strong>{{ total_materias }}</strong> materia(s) asignada(s) en <strong>{{ total_cursos }}</strong> curso(s).</p>
+    </div>
+</div>
+
+{% if grupos %}
+    {% for curso, mats in grupos.items %}
+    <div class="mb-2" style="font-weight:800; color:#0f172a; font-size:.95rem; padding: 0 4px">
+        <i class="bi bi-journal-bookmark-fill me-2 text-primary"></i>{{ curso }}
+    </div>
+    <div class="row g-3 mb-4">
+        {% for mat in mats %}
+        <div class="col-sm-6 col-lg-4 col-xl-3">
+            <div class="table-card p-4 h-100 d-flex flex-column">
+                <div class="d-flex align-items-start gap-3 mb-3">
+                    <div class="stat-icon mb-0 flex-shrink-0" style="background:#ede9fe; width:44px; height:44px;">
+                        <i class="bi bi-book-fill" style="color:#7c3aed; font-size:1rem"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold mb-1 fs-6" style="color:#0f172a">{{ mat.nombre }}</h6>
+                        <small class="text-muted">{{ mat.curso.estudiantes.count }} estudiantes</small>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-auto">
+                    <a href="{% url 'tomar_asistencia' mat.pk %}" class="btn btn-success btn-sm flex-fill rounded-pill">
+                        <i class="bi bi-check2-square me-1"></i>Asistencia
+                    </a>
+                    <a href="{% url 'detalle_materia' mat.pk %}" class="btn btn-outline-primary btn-sm btn-icon">
+                        <i class="bi bi-eye-fill"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endfor %}
+{% else %}
+<div class="table-card">
+    <div class="empty-state">
+        <i class="bi bi-book-half"></i>
+        <h6>No tienes materias asignadas</h6>
+        <p class="small text-muted">Contacta al administrador para que te asigne materias.</p>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

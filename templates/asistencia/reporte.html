@@ -1,0 +1,105 @@
+{% extends 'base.html' %}
+{% block title %}Reportes{% endblock %}
+{% block page_title %}Reportes de Asistencia{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div><h4>Reportes de Asistencia</h4><p>Selecciona curso, materia y período.</p></div>
+</div>
+<div class="table-card p-4 mb-4">
+    <form method="get" class="d-flex flex-wrap gap-3 align-items-end">
+        <div>
+            <label class="form-label">Curso</label>
+            <select name="curso" class="form-select" style="min-width:180px" onchange="this.form.submit()">
+                <option value="">— Seleccionar —</option>
+                {% for c in cursos %}
+                <option value="{{ c.pk }}" {% if curso_seleccionado and c.pk == curso_seleccionado.pk %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% if materias_del_curso %}
+        <div>
+            <label class="form-label">Materia</label>
+            <select name="materia" class="form-select" style="min-width:180px">
+                <option value="">— Todas —</option>
+                {% for m in materias_del_curso %}
+                <option value="{{ m.pk }}" {% if materia_seleccionada and m.pk == materia_seleccionada.pk %}selected{% endif %}>{{ m.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+        <div>
+            <label class="form-label">Mes</label>
+            <select name="mes" class="form-select" style="width:140px">
+                {% for num, nombre in meses %}
+                <option value="{{ num }}" {% if num == mes %}selected{% endif %}>{{ nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <label class="form-label">Año</label>
+            <select name="anio" class="form-select" style="width:100px">
+                {% for a in anios %}
+                <option value="{{ a }}" {% if a == anio %}selected{% endif %}>{{ a }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <button type="submit" class="btn btn-primary rounded-pill px-4">
+            <i class="bi bi-search me-1"></i>Generar
+        </button>
+    </form>
+</div>
+
+{% if materia_seleccionada %}
+<div class="page-header mb-3">
+    <h5 class="fw-bold mb-0">
+        <i class="bi bi-bar-chart-fill me-2 text-primary"></i>
+        {{ materia_seleccionada.nombre }} — {{ curso_seleccionado }} — {{ nombre_mes }} {{ anio }}
+    </h5>
+    <a href="{% url 'historial_asistencia' materia_seleccionada.pk %}?mes={{ mes }}&anio={{ anio }}"
+       class="btn btn-outline-primary btn-sm rounded-pill px-3">
+        <i class="bi bi-list-ul me-1"></i>Ver Historial
+    </a>
+</div>
+{% if reporte %}
+<div class="table-card">
+    <table class="table table-hover">
+        <thead><tr><th>#</th><th>Estudiante</th><th>Presentes</th><th>Ausentes</th><th>Total</th><th>Asistencia %</th><th>Calendario</th></tr></thead>
+        <tbody>
+            {% for item in reporte %}
+            <tr>
+                <td class="text-muted">{{ forloop.counter }}</td>
+                <td><strong>{{ item.estudiante }}</strong></td>
+                <td><span class="badge badge-presente px-3 py-2 rounded-pill"><i class="bi bi-check-circle-fill me-1"></i>{{ item.presentes }}</span></td>
+                <td><span class="badge badge-ausente px-3 py-2 rounded-pill"><i class="bi bi-x-circle-fill me-1"></i>{{ item.ausentes }}</span></td>
+                <td>{{ item.total }}</td>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="progress flex-fill" style="height:8px;border-radius:4px;min-width:80px">
+                            <div class="progress-bar {% if item.porcentaje >= 80 %}bg-success{% elif item.porcentaje >= 60 %}bg-warning{% else %}bg-danger{% endif %}"
+                                 style="width:{{ item.porcentaje }}%"></div>
+                        </div>
+                        <span class="small fw-bold {% if item.porcentaje >= 80 %}text-success{% elif item.porcentaje >= 60 %}text-warning{% else %}text-danger{% endif %}">
+                            {{ item.porcentaje }}%
+                        </span>
+                    </div>
+                </td>
+                <td>
+                    <a href="{% url 'calendario_estudiante' item.estudiante.pk %}?mes={{ mes }}&anio={{ anio }}&materia={{ materia_seleccionada.pk }}"
+                       class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                        <i class="bi bi-calendar3 me-1"></i>Ver
+                    </a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="table-card"><div class="empty-state"><i class="bi bi-calendar-x"></i><h6>No hay registros para ese período</h6></div></div>
+{% endif %}
+{% elif curso_seleccionado %}
+<div class="table-card"><div class="empty-state"><i class="bi bi-book-half"></i><h6>Selecciona una materia para generar el reporte</h6></div></div>
+{% else %}
+<div class="table-card"><div class="empty-state"><i class="bi bi-bar-chart"></i><h6>Selecciona un curso para comenzar</h6></div></div>
+{% endif %}
+{% endblock %}

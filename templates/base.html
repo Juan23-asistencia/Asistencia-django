@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sistema de Asistencia Escolar{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4361ee;
+            --primary-dark: #3a56d4;
+            --secondary: #7209b7;
+            --success: #2ec4b6;
+            --danger: #e63946;
+            --warning: #ff9f1c;
+            --sidebar-bg: #0f172a;
+            --sidebar-width: 260px;
+            --header-height: 64px;
+        }
+        * { font-family: 'Plus Jakarta Sans', sans-serif; }
+        body { background: #f1f5f9; min-height: 100vh; }
+
+        /* SIDEBAR */
+        .sidebar {
+            position: fixed; top: 0; left: 0;
+            width: var(--sidebar-width); height: 100vh;
+            background: var(--sidebar-bg);
+            display: flex; flex-direction: column;
+            z-index: 1000; transition: transform .3s ease;
+            overflow-y: auto;
+        }
+        .sidebar-brand {
+            padding: 20px 24px 16px;
+            border-bottom: 1px solid rgba(255,255,255,.08);
+        }
+        .sidebar-brand h5 {
+            color: #fff; font-weight: 800; font-size: .95rem;
+            margin: 0; letter-spacing: -.3px;
+        }
+        .sidebar-brand small { color: rgba(255,255,255,.4); font-size: .72rem; }
+        .sidebar-section {
+            padding: 20px 16px 8px;
+            font-size: .65rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 1.5px; color: rgba(255,255,255,.3);
+        }
+        .sidebar-nav { padding: 0 10px; }
+        .sidebar-link {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 14px; border-radius: 10px;
+            color: rgba(255,255,255,.65); text-decoration: none;
+            font-size: .875rem; font-weight: 500; margin-bottom: 2px;
+            transition: all .2s;
+        }
+        .sidebar-link:hover, .sidebar-link.active {
+            background: rgba(255,255,255,.1); color: #fff;
+        }
+        .sidebar-link.active { background: var(--primary); color: #fff; }
+        .sidebar-link i { font-size: 1.1rem; width: 20px; text-align: center; }
+        .sidebar-footer {
+            margin-top: auto; padding: 16px;
+            border-top: 1px solid rgba(255,255,255,.08);
+        }
+        .sidebar-user {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 10px;
+            background: rgba(255,255,255,.05);
+        }
+        .user-avatar {
+            width: 36px; height: 36px; border-radius: 50%;
+            background: var(--primary); color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: .85rem; flex-shrink: 0;
+        }
+        .user-info small { color: rgba(255,255,255,.4); font-size: .7rem; display: block; }
+        .user-info span { color: #fff; font-size: .8rem; font-weight: 600; }
+
+        /* MAIN CONTENT */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh; display: flex; flex-direction: column;
+        }
+        .topbar {
+            height: var(--header-height);
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex; align-items: center;
+            padding: 0 28px; gap: 12px;
+            position: sticky; top: 0; z-index: 100;
+        }
+        .topbar h6 { margin: 0; font-weight: 700; font-size: 1rem; color: #0f172a; }
+        .topbar-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+        .page-content { padding: 28px; flex: 1; }
+
+        /* CARDS */
+        .stat-card {
+            background: #fff; border-radius: 16px;
+            padding: 24px; border: 1px solid #e2e8f0;
+            transition: transform .2s, box-shadow .2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,.08); }
+        .stat-icon {
+            width: 52px; height: 52px; border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.4rem; margin-bottom: 16px;
+        }
+        .stat-value { font-size: 2rem; font-weight: 800; color: #0f172a; line-height: 1; }
+        .stat-label { font-size: .8rem; color: #64748b; font-weight: 500; margin-top: 4px; }
+
+        /* TABLES */
+        .table-card {
+            background: #fff; border-radius: 16px;
+            border: 1px solid #e2e8f0; overflow: hidden;
+        }
+        .table-card .table { margin: 0; }
+        .table-card .table th {
+            background: #f8fafc; font-size: .75rem; text-transform: uppercase;
+            letter-spacing: .8px; color: #64748b; font-weight: 700;
+            border-bottom: 1px solid #e2e8f0; padding: 14px 20px;
+        }
+        .table-card .table td { padding: 14px 20px; vertical-align: middle; color: #334155; font-size: .875rem; }
+        .table-card .table tbody tr:hover { background: #f8fafc; }
+
+        /* BADGES */
+        .badge-presente { background: #dcfce7; color: #16a34a; font-weight: 600; }
+        .badge-ausente { background: #fee2e2; color: #dc2626; font-weight: 600; }
+        .badge-admin { background: #ede9fe; color: #7c3aed; font-weight: 600; }
+        .badge-profesor { background: #dbeafe; color: #1d4ed8; font-weight: 600; }
+
+        /* FORMS */
+        .form-card {
+            background: #fff; border-radius: 16px;
+            border: 1px solid #e2e8f0; padding: 32px;
+            max-width: 600px;
+        }
+        .form-label { font-weight: 600; font-size: .85rem; color: #374151; }
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67,97,238,.15);
+        }
+
+        /* BUTTONS */
+        .btn-primary { background: var(--primary); border-color: var(--primary); }
+        .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+        .btn-icon { width: 34px; height: 34px; padding: 0; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+
+        /* CALENDAR */
+        .calendar-table { width: 100%; border-collapse: separate; border-spacing: 6px; }
+        .calendar-table th {
+            text-align: center; font-size: .72rem; font-weight: 700;
+            text-transform: uppercase; letter-spacing: .8px; color: #64748b;
+            padding: 8px 4px;
+        }
+        .calendar-day {
+            width: 52px; height: 52px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: .875rem; font-weight: 600; margin: 0 auto;
+            transition: transform .15s;
+        }
+        .calendar-day:hover { transform: scale(1.1); }
+        .day-presente { background: #dcfce7; color: #16a34a; border: 2px solid #86efac; }
+        .day-ausente { background: #fee2e2; color: #dc2626; border: 2px solid #fca5a5; }
+        .day-sin-registro { background: #f1f5f9; color: #94a3b8; border: 2px solid transparent; }
+        .day-empty { background: transparent; }
+
+        /* ALERTS */
+        .alert { border-radius: 12px; border: none; font-size: .875rem; font-weight: 500; }
+
+        /* ATTENDANCE FORM */
+        .attendance-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 20px; border-radius: 12px; background: #f8fafc;
+            border: 1px solid #e2e8f0; margin-bottom: 8px; transition: background .2s;
+        }
+        .attendance-row:hover { background: #f1f5f9; }
+        .attendance-options { display: flex; gap: 8px; }
+        .attendance-btn { cursor: pointer; }
+        .attendance-btn input[type="radio"] { display: none; }
+        .attendance-btn label {
+            display: flex; align-items: center; gap: 6px;
+            padding: 8px 16px; border-radius: 8px; cursor: pointer;
+            font-size: .8rem; font-weight: 600; transition: all .2s;
+            border: 2px solid #e2e8f0; color: #64748b;
+        }
+        .attendance-btn input[type="radio"]:checked + label.presente-label {
+            background: #dcfce7; color: #16a34a; border-color: #86efac;
+        }
+        .attendance-btn input[type="radio"]:checked + label.ausente-label {
+            background: #fee2e2; color: #dc2626; border-color: #fca5a5;
+        }
+
+        /* RESPONSIVE */
+        @media (max-width: 768px) {
+            .sidebar { transform: translateX(-100%); }
+            .sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0; }
+        }
+
+        .page-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .page-header h4 { font-weight: 800; color: #0f172a; margin: 0; }
+        .page-header p { color: #64748b; font-size: .875rem; margin: 4px 0 0; }
+
+        .empty-state {
+            text-align: center; padding: 60px 20px; color: #94a3b8;
+        }
+        .empty-state i { font-size: 3rem; margin-bottom: 16px; display: block; }
+        .empty-state h6 { font-weight: 700; color: #64748b; }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <h5><i class="bi bi-mortarboard-fill me-2" style="color:var(--primary)"></i>EduAsistencia</h5>
+            <small>Sistema de Control de Asistencia</small>
+        </div>
+
+        <div class="sidebar-nav mt-2">
+            <div class="sidebar-section">Principal</div>
+            <a href="{% url 'dashboard' %}" class="sidebar-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                <i class="bi bi-grid-1x2-fill"></i> Dashboard
+            </a>
+
+            {% if user.es_admin %}
+            <div class="sidebar-section">Administración</div>
+            <a href="{% url 'lista_profesores' %}" class="sidebar-link {% if 'profesor' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="bi bi-person-badge-fill"></i> Profesores
+            </a>
+            <a href="{% url 'lista_cursos' %}" class="sidebar-link {% if 'curso' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="bi bi-journal-bookmark-fill"></i> Cursos
+            </a>
+            <a href="{% url 'reporte_asistencia' %}" class="sidebar-link {% if request.resolver_match.url_name == 'reporte_asistencia' %}active{% endif %}">
+                <i class="bi bi-bar-chart-fill"></i> Reportes
+            </a>
+            {% else %}
+            <div class="sidebar-section">Mis Cursos</div>
+            <a href="{% url 'lista_cursos' %}" class="sidebar-link {% if 'curso' in request.resolver_match.url_name %}active{% endif %}">
+                <i class="bi bi-journal-bookmark-fill"></i> Mis Cursos
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="user-avatar">{{ user.username|first|upper }}</div>
+                <div class="user-info">
+                    <span>{{ user.get_full_name|default:user.username }}</span>
+                    <small>{{ user.get_rol_display }}</small>
+                </div>
+            </div>
+            <a href="{% url 'logout' %}" class="sidebar-link mt-2" style="color:rgba(255,100,100,.8)">
+                <i class="bi bi-box-arrow-left"></i> Cerrar sesión
+            </a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="topbar">
+            <button class="btn btn-sm d-md-none" onclick="toggleSidebar()"><i class="bi bi-list fs-5"></i></button>
+            <h6>{% block page_title %}{% endblock %}</h6>
+            <div class="topbar-actions">
+                <span class="badge badge-{{ user.rol }} px-3 py-2 rounded-pill">
+                    {{ user.get_rol_display }}
+                </span>
+            </div>
+        </div>
+
+        <div class="page-content">
+            {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags|default:'info' }} alert-dismissible fade show d-flex align-items-center gap-2 mb-3" role="alert">
+                    {% if message.tags == 'success' %}<i class="bi bi-check-circle-fill text-success"></i>
+                    {% elif message.tags == 'error' or message.tags == 'danger' %}<i class="bi bi-x-circle-fill text-danger"></i>
+                    {% else %}<i class="bi bi-info-circle-fill text-info"></i>{% endif %}
+                    {{ message }}
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                </div>
+                {% endfor %}
+            {% endif %}
+
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+        }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

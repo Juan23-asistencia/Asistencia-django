@@ -1,0 +1,102 @@
+{% extends 'base.html' %}
+{% block title %}Asistencia — {{ materia.nombre }}{% endblock %}
+{% block page_title %}Tomar Asistencia{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h4>Tomar Asistencia</h4>
+        <p>
+            <strong>{{ materia.nombre }}</strong> &nbsp;·&nbsp;
+            Curso: {{ curso }} &nbsp;·&nbsp;
+            {{ estudiantes.count }} estudiante(s)
+        </p>
+    </div>
+    <a href="{% url 'detalle_materia' materia.pk %}" class="btn btn-outline-secondary rounded-pill px-4">
+        <i class="bi bi-arrow-left me-2"></i>Volver
+    </a>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="table-card p-4 mb-4">
+        <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
+            <div>
+                <label class="form-label mb-1">Fecha de asistencia</label>
+                <input type="date" name="fecha" value="{{ hoy }}" class="form-control" style="width:200px">
+            </div>
+            <div class="ms-auto d-flex gap-2">
+                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3" onclick="marcarTodos('presente')">
+                    <i class="bi bi-check-all me-1"></i>Todos Presentes
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3" onclick="marcarTodos('ausente')">
+                    <i class="bi bi-x-lg me-1"></i>Todos Ausentes
+                </button>
+            </div>
+        </div>
+
+        {% if estudiantes %}
+            {% for estudiante in estudiantes %}
+            <div class="attendance-row">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="width:38px;height:38px;border-radius:50%;background:#f1f5f9;color:#64748b;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;flex-shrink:0;">
+                        {{ estudiante.apellido|first|upper }}
+                    </div>
+                    <div>
+                        <strong style="font-size:.9rem">{{ estudiante }}</strong>
+                        {% if estudiante.cedula %}<small class="text-muted d-block">{{ estudiante.cedula }}</small>{% endif %}
+                    </div>
+                </div>
+                <div class="attendance-options">
+                    <div class="attendance-btn">
+                        <input type="radio" name="estado_{{ estudiante.pk }}" id="presente_{{ estudiante.pk }}"
+                               value="presente" class="attendance-radio" checked>
+                        <label class="presente-label" for="presente_{{ estudiante.pk }}">
+                            <i class="bi bi-check-circle-fill"></i> Presente
+                        </label>
+                    </div>
+                    <div class="attendance-btn">
+                        <input type="radio" name="estado_{{ estudiante.pk }}" id="ausente_{{ estudiante.pk }}"
+                               value="ausente" class="attendance-radio">
+                        <label class="ausente-label" for="ausente_{{ estudiante.pk }}">
+                            <i class="bi bi-x-circle-fill"></i> Ausente
+                        </label>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="mt-4 pt-3 border-top d-flex gap-2 justify-content-end">
+                <a href="{% url 'detalle_materia' materia.pk %}" class="btn btn-outline-secondary rounded-pill px-4">Cancelar</a>
+                <button type="submit" class="btn btn-success rounded-pill px-5">
+                    <i class="bi bi-floppy-fill me-2"></i>Guardar Asistencia
+                </button>
+            </div>
+        {% else %}
+        <div class="empty-state py-4">
+            <i class="bi bi-person-x"></i>
+            <h6>No hay estudiantes en este curso</h6>
+        </div>
+        {% endif %}
+    </div>
+</form>
+{% endblock %}
+{% block extra_js %}
+<script>
+const asistenciasHoy = {
+    {% for id, asistencia in asistencias_hoy.items %}
+    {{ id }}: "{{ asistencia.estado }}",
+    {% endfor %}
+};
+document.addEventListener('DOMContentLoaded', function() {
+    for (const [id, estado] of Object.entries(asistenciasHoy)) {
+        const radio = document.getElementById(`${estado}_${id}`);
+        if (radio) radio.checked = true;
+    }
+});
+function marcarTodos(estado) {
+    document.querySelectorAll('.attendance-radio').forEach(r => {
+        if (r.value === estado) r.checked = true;
+    });
+}
+</script>
+{% endblock %}

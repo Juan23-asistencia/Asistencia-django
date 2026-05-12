@@ -1,0 +1,124 @@
+{% extends 'base.html' %}
+{% block title %}Calendario — {{ estudiante }}{% endblock %}
+{% block page_title %}Calendario de Asistencia{% endblock %}
+{% block extra_css %}
+<style>
+.calendar-wrapper { background:#fff; border-radius:20px; border:1px solid #e2e8f0; padding:32px; }
+.calendar-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:28px; }
+.calendar-nav h5 { font-weight:800; font-size:1.2rem; color:#0f172a; margin:0; }
+.calendar-table { width:100%; border-collapse:separate; border-spacing:8px; }
+.calendar-table th { text-align:center; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; color:#94a3b8; padding:4px; }
+.calendar-table td { text-align:center; padding:4px; }
+.cal-day { width:52px; height:52px; border-radius:14px; display:inline-flex; align-items:center; justify-content:center; font-size:.9rem; font-weight:700; flex-direction:column; gap:0; }
+.cal-presente { background:#dcfce7; color:#16a34a; border:2px solid #86efac; }
+.cal-ausente  { background:#fee2e2; color:#dc2626; border:2px solid #fca5a5; }
+.cal-vacio    { background:#f8fafc; color:#cbd5e1; border:2px solid transparent; }
+.cal-empty    { width:52px; height:52px; display:inline-block; }
+.stat-mini { background:#f8fafc; border-radius:14px; padding:16px 20px; border:1px solid #e2e8f0; text-align:center; }
+.stat-mini .num { font-size:1.6rem; font-weight:800; line-height:1; }
+.stat-mini .lbl { font-size:.72rem; font-weight:600; text-transform:uppercase; letter-spacing:.5px; margin-top:4px; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h4>Calendario de Asistencia</h4>
+        <p>Estudiante: <strong>{{ estudiante }}</strong> &nbsp;·&nbsp; {{ estudiante.curso }}</p>
+    </div>
+    <a href="{% url 'reporte_asistencia' %}" class="btn btn-outline-secondary rounded-pill px-4">
+        <i class="bi bi-arrow-left me-2"></i>Volver
+    </a>
+</div>
+
+<!-- Filtro por materia -->
+{% if materias_del_curso %}
+<div class="table-card p-3 mb-4">
+    <form method="get" class="d-flex flex-wrap gap-3 align-items-center">
+        <input type="hidden" name="mes"  value="{{ mes }}">
+        <input type="hidden" name="anio" value="{{ anio }}">
+        <label class="form-label mb-0 fw-bold">Materia:</label>
+        <select name="materia" class="form-select" style="width:220px" onchange="this.form.submit()">
+            <option value="">— Todas las materias —</option>
+            {% for m in materias_del_curso %}
+            <option value="{{ m.pk }}" {% if materia_sel and m.pk == materia_sel.pk %}selected{% endif %}>
+                {{ m.nombre }} {% if m.profesor %}({{ m.profesor.get_full_name|default:m.profesor.username }}){% endif %}
+            </option>
+            {% endfor %}
+        </select>
+        {% if materia_sel %}
+        <span class="badge badge-profesor py-2 px-3">{{ materia_sel.nombre }}</span>
+        {% endif %}
+    </form>
+</div>
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-12">
+        <div class="row g-3">
+            <div class="col-4">
+                <div class="stat-mini"><div class="num text-success">{{ presentes }}</div><div class="lbl text-success">Presentes</div></div>
+            </div>
+            <div class="col-4">
+                <div class="stat-mini"><div class="num text-danger">{{ ausentes }}</div><div class="lbl text-danger">Ausentes</div></div>
+            </div>
+            <div class="col-4">
+                <div class="stat-mini">
+                    <div class="num {% if porcentaje >= 80 %}text-success{% elif porcentaje >= 60 %}text-warning{% else %}text-danger{% endif %}">{{ porcentaje }}%</div>
+                    <div class="lbl text-muted">Asistencia</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-12">
+        <div class="calendar-wrapper">
+            <div class="calendar-nav">
+                <a href="?mes={{ mes_anterior }}&anio={{ anio_anterior }}{% if materia_sel %}&materia={{ materia_sel.pk }}{% endif %}"
+                   class="btn btn-outline-secondary btn-sm rounded-pill px-3"><i class="bi bi-chevron-left"></i></a>
+                <h5>{{ nombre_mes }} {{ anio }}</h5>
+                <a href="?mes={{ mes_siguiente }}&anio={{ anio_siguiente }}{% if materia_sel %}&materia={{ materia_sel.pk }}{% endif %}"
+                   class="btn btn-outline-secondary btn-sm rounded-pill px-3"><i class="bi bi-chevron-right"></i></a>
+            </div>
+            <table class="calendar-table">
+                <thead>
+                    <tr><th>Lun</th><th>Mar</th><th>Mié</th><th>Jue</th><th>Vie</th><th>Sáb</th><th>Dom</th></tr>
+                </thead>
+                <tbody>
+                    {% for semana in semanas %}
+                    <tr>
+                        {% for dia_info in semana %}
+                        <td>
+                            {% if dia_info.dia %}
+                                {% if dia_info.estado == 'presente' %}
+                                    <div class="cal-day cal-presente">{{ dia_info.dia }}<small style="font-size:.55rem">✓</small></div>
+                                {% elif dia_info.estado == 'ausente' %}
+                                    <div class="cal-day cal-ausente">{{ dia_info.dia }}<small style="font-size:.55rem">✗</small></div>
+                                {% else %}
+                                    <div class="cal-day cal-vacio">{{ dia_info.dia }}</div>
+                                {% endif %}
+                            {% else %}
+                                <div class="cal-empty"></div>
+                            {% endif %}
+                        </td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="d-flex gap-4 mt-4 pt-3 border-top justify-content-center">
+                <div class="d-flex align-items-center gap-2">
+                    <span style="width:14px;height:14px;border-radius:4px;background:#dcfce7;border:2px solid #86efac;display:inline-block"></span>
+                    <small class="text-muted fw-600">Presente</small>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span style="width:14px;height:14px;border-radius:4px;background:#fee2e2;border:2px solid #fca5a5;display:inline-block"></span>
+                    <small class="text-muted fw-600">Ausente</small>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span style="width:14px;height:14px;border-radius:4px;background:#f8fafc;border:2px solid #e2e8f0;display:inline-block"></span>
+                    <small class="text-muted fw-600">Sin registro</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
